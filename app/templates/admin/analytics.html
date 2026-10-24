@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Resolution Intelligence & Analytics — CivicFix{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-violet); text-transform: uppercase;">
+        Executive Resolution Intelligence
+      </div>
+      <h1 style="font-size: 1.85rem; margin-bottom: 0.25rem;">Municipal Performance &amp; Infrastructure Analytics</h1>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Real-time metrics calculated from active municipal database transactions.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="{{ url_for('admin.export_csv') }}" class="btn btn-sm btn-primary">
+        📥 Export Dataset (CSV)
+      </a>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-secondary">
+        &larr; Admin Hub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Macro Metrics Bar -->
+<div class="stats-grid" style="margin: 0 0 2rem 0;">
+  <div class="glass-card stat-card card-edge-cyan">
+    <div class="stat-number text-cyan">{{ total_issues }}</div>
+    <div class="stat-label">Total Recorded Reports</div>
+  </div>
+  <div class="glass-card stat-card card-edge-emerald">
+    <div class="stat-number text-emerald">{{ resolved_issues }}</div>
+    <div class="stat-label">Resolved with Proof</div>
+  </div>
+  <div class="glass-card stat-card card-edge-amber">
+    <div class="stat-number text-amber">{{ avg_resolution_hours }}h</div>
+    <div class="stat-label">Average Resolution Time</div>
+  </div>
+  <div class="glass-card stat-card card-edge-violet">
+    <div class="stat-number text-violet">
+      {% if total_issues > 0 %}{{ ((resolved_issues / total_issues) * 100)|round(1) }}{% else %}100{% endif %}%
+    </div>
+    <div class="stat-label">City Resolution Rate</div>
+  </div>
+</div>
+
+<!-- Charts Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+  <!-- Department Workload Bar Chart -->
+  <div class="glass-card">
+    <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+        <rect x="3" y="3" width="7" height="18"></rect>
+        <rect x="14" y="9" width="7" height="12"></rect>
+      </svg>
+      Department-Wise Workload &amp; Resolution
+    </h3>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+      Comparison of total complaints received vs verified resolutions by department.
+    </p>
+    <div style="height: 300px;">
+      <canvas id="deptWorkloadChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Category Distribution Doughnut Chart -->
+  <div class="glass-card">
+    <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-violet)" stroke-width="2">
+        <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+        <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+      </svg>
+      Civic Category Distribution
+    </h3>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+      Breakdown across the 8 civic categories defined under IC26-04-02.
+    </p>
+    <div style="height: 300px;">
+      <canvas id="categoryDoughnutChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Resolution Velocity Trend Line Chart -->
+  <div class="glass-card">
+    <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+      </svg>
+      Weekly Incident &amp; Resolution Velocity
+    </h3>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+      7-day municipal trend showing daily reported vs resolved infrastructure issues.
+    </p>
+    <div style="height: 300px;">
+      <canvas id="trendLineChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Severity Breakdown Polar Area Chart -->
+  <div class="glass-card">
+    <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-coral)" stroke-width="2">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+      Severity Distribution
+    </h3>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+      Breakdown by hazard urgency: Critical, High, Medium, Low.
+    </p>
+    <div style="height: 300px;">
+      <canvas id="severityChart"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Pass genuine database metrics to Chart.js module
+window.deptStatsData = [
+  {% for d in dept_stats %}
+    { name: "{{ d.name }}", total_issues: {{ d.total_issues }}, resolved_count: {{ d.resolved_count }} },
+  {% endfor %}
+];
+
+window.catStatsData = [
+  {% for c in cat_stats %}
+    { category: "{{ c.category }}", count: {{ c.count }} },
+  {% endfor %}
+];
+
+window.sevStatsData = [
+  {% for s in sev_stats %}
+    { severity: "{{ s.severity }}", count: {{ s.count }} },
+  {% endfor %}
+];
+</script>
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+{% endblock %}

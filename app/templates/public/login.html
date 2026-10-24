@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In — CivicFix Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 2rem auto;">
+  <div class="glass-card" style="border-top: 4px solid var(--accent-cyan); padding: 2.25rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="CivicFix" style="height: 48px; margin-bottom: 0.75rem;">
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.25rem;">Sign In to CivicFix</h2>
+      <p style="font-size: 0.88rem; color: var(--text-muted);">Access municipal tracking, issue resolution &amp; civic reports</p>
+    </div>
+
+    <!-- 1-Click Demonstration Login Buttons for Judges -->
+    <div style="background: rgba(34, 211, 238, 0.08); border: 1px dashed var(--border-luminous); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.5rem;">
+      <div style="font-size: 0.78rem; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 0.5rem; text-align: center;">
+        ⚡ Innovators Conclave 2026: 1-Click Judge Access
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <a href="{{ url_for('auth.demo_login', role='citizen') }}" class="btn btn-sm btn-secondary" style="font-size: 0.78rem; text-align: center;">
+          Citizen Account
+        </a>
+        <a href="{{ url_for('auth.demo_login', role='staff') }}" class="btn btn-sm btn-secondary" style="font-size: 0.78rem; text-align: center;">
+          Staff: Roads Eng.
+        </a>
+        <a href="{{ url_for('auth.demo_login', role='sanitation') }}" class="btn btn-sm btn-secondary" style="font-size: 0.78rem; text-align: center;">
+          Staff: Sanitation
+        </a>
+        <a href="{{ url_for('auth.demo_login', role='admin') }}" class="btn btn-sm btn-primary" style="font-size: 0.78rem; text-align: center;">
+          Municipal Admin
+        </a>
+      </div>
+    </div>
+
+    <!-- Standard Login Form -->
+    <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}">
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input type="email" id="email" name="email" class="form-control" placeholder="e.g. citizen@civicfix.org" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••••••" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem; padding: 0.85rem;">
+        Sign In to Portal
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.5rem; font-size: 0.88rem; color: var(--text-muted);">
+      Don't have an account? <a href="{{ url_for('auth.register') }}" style="color: var(--accent-cyan); font-weight: 600;">Register as Citizen</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

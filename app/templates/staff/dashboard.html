@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Municipal Staff Command Centre — CivicFix{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-teal); text-transform: uppercase;">
+        Municipal Staff Command Centre
+      </div>
+      <h1 style="font-size: 1.85rem; margin-bottom: 0.25rem;">{{ g.user.full_name }}</h1>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Department: <strong>{{ g.user.department_name or 'General Municipal Infrastructure' }}</strong>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Command Centre KPIs -->
+<div class="stats-grid" style="margin: 0 0 2rem 0;">
+  <div class="glass-card stat-card card-edge-cyan">
+    <div class="stat-number text-cyan">{{ stats.assigned }}</div>
+    <div class="stat-label">Assigned Work Orders</div>
+  </div>
+  <div class="glass-card stat-card card-edge-teal">
+    <div class="stat-number text-teal">{{ stats.in_progress }}</div>
+    <div class="stat-label">In Progress</div>
+  </div>
+  <div class="glass-card stat-card card-edge-emerald">
+    <div class="stat-number text-emerald">{{ stats.resolved }}</div>
+    <div class="stat-label">Resolved with Evidence</div>
+  </div>
+  <div class="glass-card stat-card card-edge-coral">
+    <div class="stat-number text-coral">{{ stats.overdue }}</div>
+    <div class="stat-label">SLA Overdue Alerts</div>
+  </div>
+</div>
+
+<!-- Tab Navigation & Filters -->
+<div class="glass-card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1rem;">
+    <!-- Tabs -->
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="{{ url_for('staff.dashboard', tab='assigned') }}" class="btn btn-sm {% if view_tab == 'assigned' %}btn-primary{% else %}btn-secondary{% endif %}">
+        Assigned to Me
+      </a>
+      <a href="{{ url_for('staff.dashboard', tab='department') }}" class="btn btn-sm {% if view_tab == 'department' %}btn-primary{% else %}btn-secondary{% endif %}">
+        Department Queue
+      </a>
+    </div>
+
+    <!-- Overdue Toggle -->
+    <div>
+      <a href="{{ url_for('staff.dashboard', tab=view_tab, overdue='1' if request.args.get('overdue') != '1' else '0') }}" class="btn btn-sm {% if request.args.get('overdue') == '1' %}btn-coral{% else %}btn-secondary{% endif %}">
+        ⚠️ Overdue Only
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter Controls -->
+  <form method="GET" action="{{ url_for('staff.dashboard') }}" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+    <input type="hidden" name="tab" value="{{ view_tab }}">
+    <div style="flex: 1; min-width: 160px;">
+      <select name="status" class="form-select" style="padding: 0.45rem;">
+        <option value="">All Statuses</option>
+        {% for st in STATUS_WORKFLOW %}
+          <option value="{{ st }}" {% if request.args.get('status') == st %}selected{% endif %}>{{ st }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 160px;">
+      <select name="severity" class="form-select" style="padding: 0.45rem;">
+        <option value="">All Severities</option>
+        {% for sev in SEVERITY_LEVELS %}
+          <option value="{{ sev }}" {% if request.args.get('severity') == sev %}selected{% endif %}>{{ sev }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-sm btn-secondary" style="padding: 0.5rem 1.25rem;">Apply Filters</button>
+  </form>
+</div>
+
+<!-- Work Order Queue Table -->
+<div class="glass-card" style="padding: 0; overflow: hidden; margin-bottom: 3rem;">
+  <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+    <h3 style="font-size: 1.15rem;">Operational Work Order Queue</h3>
+    <span style="font-size: 0.85rem; color: var(--text-muted);">{{ issues|length }} issues listed</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Issue ID</th>
+          <th>Photo</th>
+          <th>Category &amp; Title</th>
+          <th>Severity / Priority</th>
+          <th>Status</th>
+          <th>SLA Deadline</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if issues %}
+          {% for issue in issues %}
+            <tr>
+              <td style="font-weight: 700; color: var(--accent-cyan); white-space: nowrap;">
+                {{ issue.id }}
+                {% if issue.is_demo %}<div style="font-size: 0.65rem; color: #DDD6FE;">[DEMO]</div>{% endif %}
+              </td>
+              <td style="width: 70px;">
+                {% if issue.original_image %}
+                  <img src="{{ issue.original_image }}" style="width: 60px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-subtle);">
+                {% else %}
+                  <div style="width: 60px; height: 45px; background: rgba(11, 16, 32, 0.6); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: var(--text-dim);">No Photo</div>
+                {% endif %}
+              </td>
+              <td>
+                <div style="font-size: 0.75rem; color: var(--accent-violet); font-weight: 600;">{{ issue.category }}</div>
+                <div style="font-weight: 600; font-size: 0.92rem; margin-bottom: 2px;">{{ issue.title }}</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">📍 {{ issue.landmark or issue.address or 'Cyberabad' }}</div>
+              </td>
+              <td>
+                <span class="badge badge-{{ issue.severity.lower() }}" style="margin-bottom: 2px;">{{ issue.severity }}</span>
+                <div style="font-size: 0.75rem; color: var(--text-dim);">Score: {{ issue.priority_score }}/100</div>
+              </td>
+              <td>
+                <span class="badge badge-{{ issue.status.lower().replace(' ', '-') }}">{{ issue.status }}</span>
+              </td>
+              <td>
+                {% if issue.is_overdue %}
+                  <span class="badge badge-critical" style="font-size: 0.72rem;">⚠️ {{ issue.sla_badge }}</span>
+                {% else %}
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">{{ issue.sla_badge }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('public.issue_detail', issue_id=issue.id) }}" class="btn btn-sm btn-outline-cyan">
+                  Open Order &rarr;
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+              No work orders match current filter parameters.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

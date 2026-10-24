@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Citizen Portal — CivicFix{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase;">
+        Resident Dashboard
+      </div>
+      <h1 style="font-size: 1.85rem; margin-bottom: 0.25rem;">Welcome, {{ g.user.full_name }}</h1>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Monitor real-time status of your public infrastructure reports and verify municipal repairs.
+      </p>
+    </div>
+    <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-primary btn-lg" style="box-shadow: var(--glow-cyan);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
+      </svg>
+      + Report New Issue
+    </a>
+  </div>
+</div>
+
+<!-- Personal Metrics Grid -->
+<div class="stats-grid" style="margin: 0 0 2rem 0;">
+  <div class="glass-card stat-card card-edge-cyan">
+    <div class="stat-number text-cyan">{{ stats.total }}</div>
+    <div class="stat-label">My Reports</div>
+  </div>
+  <div class="glass-card stat-card card-edge-violet">
+    <div class="stat-number text-violet">{{ stats.awaiting }}</div>
+    <div class="stat-label">Under Verification</div>
+  </div>
+  <div class="glass-card stat-card card-edge-amber">
+    <div class="stat-number text-amber">{{ stats.in_progress }}</div>
+    <div class="stat-label">In Progress / Assigned</div>
+  </div>
+  <div class="glass-card stat-card card-edge-emerald">
+    <div class="stat-number text-emerald">{{ stats.resolved }}</div>
+    <div class="stat-label">Resolved with Proof</div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="glass-card" style="padding: 1rem; margin-bottom: 1.5rem;">
+  <form method="GET" action="{{ url_for('citizen.dashboard') }}" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+    <div style="flex: 2; min-width: 220px;">
+      <label class="form-label" style="font-size: 0.78rem;">Search by ID or Title</label>
+      <input type="text" name="q" value="{{ request.args.get('q', '') }}" class="form-control" placeholder="Search report ID, keywords...">
+    </div>
+
+    <div style="flex: 1; min-width: 160px;">
+      <label class="form-label" style="font-size: 0.78rem;">Status</label>
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        <option value="Submitted" {% if request.args.get('status') == 'Submitted' %}selected{% endif %}>Submitted</option>
+        <option value="Under Review" {% if request.args.get('status') == 'Under Review' %}selected{% endif %}>Under Review</option>
+        <option value="Verified" {% if request.args.get('status') == 'Verified' %}selected{% endif %}>Verified</option>
+        <option value="Assigned" {% if request.args.get('status') == 'Assigned' %}selected{% endif %}>Assigned</option>
+        <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
+        <option value="Resolved" {% if request.args.get('status') == 'Resolved' %}selected{% endif %}>Resolved</option>
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 160px;">
+      <label class="form-label" style="font-size: 0.78rem;">Category</label>
+      <select name="category" class="form-select">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}" {% if request.args.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-secondary" style="padding: 0.72rem 1.25rem;">Filter</button>
+  </form>
+</div>
+
+<!-- My Reports List -->
+<div style="margin-bottom: 3rem;">
+  <h2 style="font-size: 1.35rem; margin-bottom: 1rem;">My Tracked Complaints</h2>
+
+  {% if issues %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+      {% for issue in issues %}
+        <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="position: relative; margin: -1.5rem -1.5rem 1rem -1.5rem; height: 160px; overflow: hidden; background: #0B1020; border-top-left-radius: var(--radius-md); border-top-right-radius: var(--radius-md);">
+              {% if issue.resolution_image %}
+                <img src="{{ issue.resolution_image }}" alt="Resolved" style="width: 100%; height: 100%; object-fit: cover;">
+                <span class="comparison-badge after">Verified Resolution</span>
+              {% elif issue.original_image %}
+                <img src="{{ issue.original_image }}" alt="Original Issue" style="width: 100%; height: 100%; object-fit: cover;">
+                <span class="comparison-badge before">{{ issue.category.split(' ')[0] }}</span>
+              {% else %}
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(23, 26, 58, 0.7);">
+                  <img src="{{ url_for('static', filename='images/logo.svg') }}" style="height: 35px; opacity: 0.5;">
+                </div>
+              {% endif %}
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span style="font-weight: 700; color: var(--accent-cyan); font-size: 0.85rem;">{{ issue.id }}</span>
+              <span class="badge badge-{{ issue.status.lower().replace(' ', '-') }}">{{ issue.status }}</span>
+            </div>
+
+            <h3 style="font-size: 1.05rem; line-height: 1.3; margin-bottom: 0.4rem;">
+              {{ issue.title }}
+            </h3>
+
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              📍 {{ issue.landmark or issue.address or 'Location coordinates logged' }}
+            </p>
+
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+              <span class="badge badge-{{ issue.severity.lower() }}">Severity: {{ issue.severity }}</span>
+              <span class="badge" style="background: rgba(139, 92, 246, 0.15); color: #C4B5FD;">{{ issue.priority_level }} Priority</span>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.75rem; color: var(--text-dim);">Filed: {{ issue.created_at|format_date }}</span>
+            <a href="{{ url_for('public.issue_detail', issue_id=issue.id) }}" class="btn btn-sm btn-outline-cyan">
+              Full Tracking Page &rarr;
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="glass-card" style="text-align: center; padding: 3rem;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom: 1rem;">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem;">No reports match your filters</h3>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+        Notice a pothole, broken streetlight, or drainage issue in your street? Submit a quick photo report!
+      </p>
+      <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-primary">
+        + Report an Issue Now
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

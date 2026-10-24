@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Explore Public Infrastructure Map — CivicFix Nationwide{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <!-- Header & Action Buttons -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+    <div>
+      <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem; border-radius: 9999px; background: rgba(34, 211, 238, 0.12); border: 1px solid var(--border-luminous); margin-bottom: 0.5rem;">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent-cyan);"></span>
+        <span style="font-size: 0.76rem; font-weight: 700; color: var(--accent-cyan); letter-spacing: 0.08em;">PAN-INDIA URBAN COVERAGE</span>
+      </div>
+      <h1 style="font-size: 2rem; margin-bottom: 0.35rem;" data-i18n="map_nationwide_title">Live Nationwide Infrastructure Map</h1>
+      <p style="color: var(--text-muted); font-size: 0.92rem; max-width: 680px;" data-i18n="map_nationwide_desc">
+        Real geolocated public reports, active repair zones, and infrastructure status across India.
+      </p>
+    </div>
+
+    <!-- Quick Map Controls -->
+    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+      <button type="button" id="reset-india-btn" class="btn btn-secondary btn-sm" data-i18n="btn_reset_india">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        Reset to India View
+      </button>
+
+      <button type="button" id="map-locate-btn" class="btn btn-outline-cyan btn-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+        </svg>
+        <span data-i18n="btn_use_gps">USE MY LOCATION</span>
+      </button>
+
+      <div class="view-toggle-group">
+        <button type="button" id="toggle-view-map" class="btn btn-sm btn-primary active" data-i18n="btn_map_view">Map View</button>
+        <button type="button" id="toggle-view-list" class="btn btn-sm btn-secondary" data-i18n="btn_list_view">List View</button>
+      </div>
+
+      <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-sm btn-primary">
+        + Report Issue
+      </a>
+    </div>
+  </div>
+
+  <!-- Nationwide Filter & Search Bar -->
+  <div class="glass-card" style="padding: 1.25rem; margin-bottom: 1.25rem;">
+    <!-- Top Search Row -->
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem;">
+      <div style="flex: 2; min-width: 260px; position: relative;">
+        <input type="text" id="filter-search-input" class="form-control" placeholder="Search by city, landmark, keyword, or Issue ID (e.g. Mumbai, Pothole, CF-2026-0001)...">
+      </div>
+      <button type="button" id="filter-search-btn" class="btn btn-primary" style="padding: 0.6rem 1.25rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        Search Area
+      </button>
+      <button type="button" id="clear-filters-btn" class="btn btn-secondary" data-i18n="btn_clear_filters">
+        Clear Filters
+      </button>
+    </div>
+
+    <!-- Filter Dropdowns Row -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; align-items: end;">
+      <!-- State & Union Territory Selector -->
+      <div>
+        <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">State / Union Territory</label>
+        <select id="filter-state" class="form-select" style="padding: 0.5rem 0.65rem; font-size: 0.85rem;">
+          <option value="">All Indian States &amp; UTs</option>
+          <option value="Andhra Pradesh">Andhra Pradesh</option>
+          <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+          <option value="Assam">Assam</option>
+          <option value="Bihar">Bihar</option>
+          <option value="Chhattisgarh">Chhattisgarh</option>
+          <option value="Delhi">Delhi (NCT)</option>
+          <option value="Goa">Goa</option>
+          <option value="Gujarat">Gujarat</option>
+          <option value="Haryana">Haryana</option>
+          <option value="Himachal Pradesh">Himachal Pradesh</option>
+          <option value="Jammu & Kashmir">Jammu &amp; Kashmir</option>
+          <option value="Jharkhand">Jharkhand</option>
+          <option value="Karnataka">Karnataka</option>
+          <option value="Kerala">Kerala</option>
+          <option value="Ladakh">Ladakh</option>
+          <option value="Madhya Pradesh">Madhya Pradesh</option>
+          <option value="Maharashtra">Maharashtra</option>
+          <option value="Manipur">Manipur</option>
+          <option value="Meghalaya">Meghalaya</option>
+          <option value="Mizoram">Mizoram</option>
+          <option value="Nagaland">Nagaland</option>
+          <option value="Odisha">Odisha</option>
+          <option value="Punjab">Punjab</option>
+          <option value="Rajasthan">Rajasthan</option>
+          <option value="Sikkim">Sikkim</option>
+          <option value="Tamil Nadu">Tamil Nadu</option>
+          <option value="Telangana">Telangana</option>
+          <option value="Tripura">Tripura</option>
+          <option value="Uttar Pradesh">Uttar Pradesh</option>
+          <option value="Uttarakhand">Uttarakhand</option>
+          <option value="West Bengal">West Bengal</option>
+          <option value="Chandigarh">Chandigarh</option>
+          <option value="Puducherry">Puducherry</option>
+        </select>
+      </div>
+
+      <!-- City Input -->
+      <div>
+        <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">City / District</label>
+        <input type="text" id="filter-city" class="form-control" placeholder="e.g. Delhi, Mumbai, Pune..." style="padding: 0.5rem 0.65rem; font-size: 0.85rem;">
+      </div>
+
+      <!-- Category Selector -->
+      <div>
+        <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Category</label>
+        <select id="filter-category" class="form-select" style="padding: 0.5rem 0.65rem; font-size: 0.85rem;">
+          <option value="">All Categories</option>
+          {% for cat in CATEGORIES %}
+            <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Status Selector -->
+      <div>
+        <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Status</label>
+        <select id="filter-status" class="form-select" style="padding: 0.5rem 0.65rem; font-size: 0.85rem;">
+          <option value="">All Statuses</option>
+          <option value="Submitted">Submitted</option>
+          <option value="Under Review">Under Review</option>
+          <option value="Verified">Verified</option>
+          <option value="Assigned">Assigned</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+      </div>
+
+      <!-- Priority / Severity -->
+      <div>
+        <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Priority</label>
+        <select id="filter-severity" class="form-select" style="padding: 0.5rem 0.65rem; font-size: 0.85rem;">
+          <option value="">All Priorities</option>
+          <option value="Critical">Critical</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Results Status Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 0.5rem;">
+      <div style="font-size: 0.85rem; color: var(--text-muted);">
+        <strong id="results-count-text" style="color: var(--accent-cyan); font-weight: 700;">Loading issues...</strong>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button id="toggle-hotspots-btn" class="btn btn-sm btn-outline-cyan" style="font-size: 0.78rem;">
+          🔥 Clustered Hotspots (250m)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main View Container: Map View vs List View -->
+  <div id="map-view-wrapper" class="glass-card" style="padding: 0.75rem; margin-bottom: 1.5rem;">
+    <div id="explore-map" style="height: 600px; width: 100%; border-radius: var(--radius-md);"></div>
+    
+    <!-- Accessible Map Legend -->
+    <div class="map-legend-bar">
+      <div class="legend-item"><span class="legend-dot" style="background: #34D399; box-shadow: 0 0 8px #34D399;"></span> <strong>Resolved</strong> (Verified fix proof)</div>
+      <div class="legend-item"><span class="legend-dot" style="background: #2DD4BF; box-shadow: 0 0 8px #2DD4BF;"></span> <strong>In Progress</strong> (Crew on site)</div>
+      <div class="legend-item"><span class="legend-dot" style="background: #FBBF24; box-shadow: 0 0 8px #FBBF24;"></span> <strong>Assigned</strong> (Department dispatched)</div>
+      <div class="legend-item"><span class="legend-dot" style="background: #22D3EE; box-shadow: 0 0 8px #22D3EE;"></span> <strong>Verified</strong> (Confirmed hazard)</div>
+      <div class="legend-item"><span class="legend-dot" style="background: #8B5CF6; box-shadow: 0 0 8px #8B5CF6;"></span> <strong>Under Review</strong> (Awaiting inspection)</div>
+      <div class="legend-item"><span class="legend-dot" style="background: #94A3B8;"></span> <strong>Submitted</strong> (New citizen report)</div>
+    </div>
+  </div>
+
+  <!-- Alternative Interactive List View -->
+  <div id="list-view-wrapper" class="glass-card" style="padding: 1.5rem; display: none; margin-bottom: 1.5rem;">
+    <div id="list-view-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
+      <!-- Populated dynamically via map.js -->
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+{% endblock %}

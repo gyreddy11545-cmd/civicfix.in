@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}CivicFix — Report It. Track It. Fix It.{% endblock %}</title>
+  <meta name="description" content="CivicFix: Smart Public Infrastructure Issue Tracking Platform for Innovators Conclave 2026. Real mobile camera capture, duplicate detection, and verified resolution evidence.">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/logo.svg') }}">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <!-- Civic Aurora Stylesheets -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/aurora.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+
+  <!-- Leaflet JS & Chart.js -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Cinematic Civic Aurora Background -->
+  <div class="aurora-bg">
+    <div class="aurora-grid"></div>
+    <div class="aurora-glow-1"></div>
+    <div class="aurora-glow-2"></div>
+  </div>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-wrapper">
+      <a href="{{ url_for('public.index') }}" class="nav-brand" aria-label="CivicFix Home">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="CivicFix Logo">
+      </a>
+
+      <!-- Desktop Nav Links with Active Highlighting -->
+      <ul class="nav-links">
+        <li>
+          <a href="{{ url_for('public.index') }}" class="nav-link {% if request.endpoint == 'public.index' %}active{% endif %}" data-i18n="nav_home">
+            Home
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('public.explore') }}" class="nav-link {% if request.endpoint == 'public.explore' %}active{% endif %}" data-i18n="nav_explore">
+            Explore Map
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('citizen.report_issue') }}" class="nav-link text-cyan {% if request.endpoint == 'citizen.report_issue' %}active{% endif %}" data-i18n="nav_report">
+            Report an Issue
+          </a>
+        </li>
+        
+        {% if g.user %}
+          {% if g.user.role == 'citizen' %}
+            <li>
+              <a href="{{ url_for('citizen.dashboard') }}" class="nav-link {% if request.endpoint == 'citizen.dashboard' %}active{% endif %}" data-i18n="nav_dashboard">
+                My Reports
+              </a>
+            </li>
+          {% elif g.user.role == 'staff' %}
+            <li>
+              <a href="{{ url_for('staff.dashboard') }}" class="nav-link text-teal {% if request.endpoint == 'staff.dashboard' %}active{% endif %}" data-i18n="nav_staff">
+                Staff Command
+              </a>
+            </li>
+          {% elif g.user.role == 'admin' %}
+            <li>
+              <a href="{{ url_for('admin.dashboard') }}" class="nav-link text-violet {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" data-i18n="nav_admin">
+                Admin Hub
+              </a>
+            </li>
+            <li>
+              <a href="{{ url_for('admin.analytics') }}" class="nav-link {% if request.endpoint == 'admin.analytics' %}active{% endif %}" data-i18n="nav_analytics">
+                Analytics
+              </a>
+            </li>
+          {% endif %}
+        {% endif %}
+      </ul>
+
+      <!-- Action Items: Language, Theme, Notifications, Auth -->
+      <div class="nav-actions">
+        <!-- Multilingual Language Selector (8 Indian Languages) -->
+        <select id="lang-select" class="form-select lang-dropdown" aria-label="Select Language">
+          <option value="en">English (English)</option>
+          <option value="te">తెలుగు (Telugu)</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+          <option value="kn">ಕನ್ನಡ (Kannada)</option>
+          <option value="ml">മലയാളം (Malayalam)</option>
+          <option value="bn">বাংলা (Bengali)</option>
+          <option value="mr">मराठी (Marathi)</option>
+        </select>
+
+        <!-- Theme Toggle -->
+        <button id="theme-toggle-btn" class="btn btn-secondary btn-sm" aria-label="Toggle Theme" style="padding: 0.4rem 0.6rem;">
+          <span id="theme-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+            </svg>
+          </span>
+        </button>
+
+        {% if g.user %}
+          <!-- Notification Bell -->
+          <button id="notif-bell-btn" class="notif-bell-btn" aria-label="Notifications" title="Civic Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span id="notif-badge" class="notif-badge" style="display: none;">0</span>
+          </button>
+
+          <!-- User Identity Menu -->
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-secondary" data-i18n="nav_logout">Sign Out</a>
+          </div>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-secondary" data-i18n="nav_login">Sign In</a>
+          <a href="{{ url_for('citizen.report_issue') }}" class="btn btn-sm btn-primary" data-i18n="btn_report">Report Issue</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Flash Messages Banner & Page Content Wrapper with Smooth Transitions -->
+  <main class="container page-content-wrapper" style="padding-top: 1.5rem;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+              <span>{{ message }}</span>
+              <button type="button" class="alert-close" style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Page Content -->
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Notification Drawer Modal with Circular Thumbnails -->
+  <div id="notif-modal" class="modal-backdrop">
+    <div class="modal-card notif-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span class="notif-icon-badge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </span>
+          <div>
+            <h3 style="font-size: 1.1rem; margin: 0;" data-i18n="notif_title">Civic Notifications</h3>
+            <span id="notif-unread-subtext" style="font-size: 0.76rem; color: var(--accent-cyan);">0 unread</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button type="button" id="mark-all-read-btn" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;" data-i18n="btn_mark_all_read">
+            Mark All as Read
+          </button>
+          <button type="button" onclick="closeModal('notif-modal')" class="modal-close-btn" aria-label="Close Notifications">&times;</button>
+        </div>
+      </div>
+
+      <!-- Notification Filter Tabs (All / Unread) -->
+      <div class="notif-tabs">
+        <button type="button" id="notif-tab-all" class="notif-tab active">All Notifications</button>
+        <button type="button" id="notif-tab-unread" class="notif-tab">Unread Only</button>
+      </div>
+
+      <div id="notif-list-container" class="notif-list-scroll">
+        <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);" data-i18n="notif_empty">Loading notifications...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <a href="{{ url_for('public.index') }}" class="bottom-nav-item {% if request.endpoint == 'public.index' %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+      </svg>
+      <span data-i18n="nav_home">Home</span>
+    </a>
+
+    <a href="{{ url_for('public.explore') }}" class="bottom-nav-item {% if request.endpoint == 'public.explore' %}active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+      </svg>
+      <span data-i18n="nav_explore">Map</span>
+    </a>
+
+    <!-- Floating Center Report Button -->
+    <a href="{{ url_for('citizen.report_issue') }}" class="bottom-nav-item bottom-nav-report-btn {% if request.endpoint == 'citizen.report_issue' %}active{% endif %}" aria-label="Report Civic Issue">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
+      </svg>
+    </a>
+
+    {% if g.user %}
+      <a href="{% if g.user.role == 'admin' %}{{ url_for('admin.dashboard') }}{% elif g.user.role == 'staff' %}{{ url_for('staff.dashboard') }}{% else %}{{ url_for('citizen.dashboard') }}{% endif %}" class="bottom-nav-item {% if request.endpoint in ['citizen.dashboard', 'staff.dashboard', 'admin.dashboard'] %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        <span data-i18n="nav_dashboard">Portal</span>
+      </a>
+      <a href="{{ url_for('auth.logout') }}" class="bottom-nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span data-i18n="nav_logout">Exit</span>
+      </a>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}" class="bottom-nav-item {% if request.endpoint == 'auth.login' %}active{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span data-i18n="nav_login">Sign In</span>
+      </a>
+    {% endif %}
+  </nav>
+
+  <!-- Floating CivicFix AI Assistant Widget -->
+  <div id="civicfix-ai-widget" class="ai-widget-container">
+    <!-- Floating Circular Launcher Button -->
+    <button id="ai-assistant-btn" class="ai-launcher-btn" aria-label="Open CivicFix AI Assistant" title="CivicFix AI Assistant">
+      <span class="ai-launcher-pulse"></span>
+      <svg class="ai-launcher-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path>
+        <circle cx="9" cy="13" r="1.2" fill="currentColor"></circle>
+        <circle cx="15" cy="13" r="1.2" fill="currentColor"></circle>
+        <path d="M9.5 17c.8 1 2.2 1 3 0" stroke-linecap="round"></path>
+      </svg>
+      <span class="ai-launcher-label">CivicFix AI</span>
+    </button>
+
+    <!-- Chat Window Card -->
+    <div id="ai-assistant-card" class="ai-chat-card glass-panel" style="display: none;">
+      <div class="ai-chat-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div class="ai-avatar-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B1020" stroke-width="2.2">
+              <path d="M12 2a2 2 0 0 1 2 2v3h1a7 7 0 0 1 7 7v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a7 7 0 0 1 7-7h1V4a2 2 0 0 1 2-2z"></path>
+              <circle cx="9" cy="13" r="1" fill="#0B1020"></circle>
+              <circle cx="15" cy="13" r="1" fill="#0B1020"></circle>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);" data-i18n="ai_assistant_title">CivicFix AI Assistant</div>
+            <div class="ai-status-indicator">
+              <span class="ai-status-dot"></span>
+              <span id="ai-mode-label">Guided Knowledge Engine • Online</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="ai-close-btn" class="ai-close-btn" aria-label="Close AI Assistant">&times;</button>
+      </div>
+
+      <!-- Message Feed -->
+      <div id="ai-chat-thread" class="ai-chat-thread">
+        <div class="ai-bubble-msg ai-bubble-bot">
+          <div class="ai-bubble-content">
+            Hello! I am your <strong>CivicFix AI Assistant</strong>. I can guide you through reporting infrastructure hazards, suggest the right category, explain repair statuses, and track your complaints across India.
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggested Quick Questions -->
+      <div id="ai-suggested-chips" class="ai-suggested-chips">
+        <button type="button" class="ai-chip-btn" data-query="How do I report a pothole or road hazard?">How to report?</button>
+        <button type="button" class="ai-chip-btn" data-query="Suggest category for water leakage">Water leakage category</button>
+        <button type="button" class="ai-chip-btn" data-query="What does 'Under Review' status mean?">Status workflow</button>
+        <button type="button" class="ai-chip-btn" data-query="How does duplicate prevention work?">Duplicate check</button>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div id="ai-typing-indicator" class="ai-typing" style="display: none;">
+        <span></span><span></span><span></span>
+      </div>
+
+      <!-- Chat Input Form -->
+      <form id="ai-chat-form" class="ai-chat-input-bar">
+        <input type="text" id="ai-user-input" class="form-control" placeholder="Ask about reporting, categories, or status..." autocomplete="off" data-i18n-placeholder="ai_ask_placeholder" required>
+        <button type="submit" id="ai-send-btn" class="btn btn-primary btn-sm" aria-label="Send message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer style="margin-top: 5rem; padding: 2.5rem 0; border-top: 1px solid var(--border-subtle); background: rgba(11, 16, 32, 0.6); text-align: center;">
+    <div class="container">
+      <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="CivicFix Logo" style="height: 28px;">
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 600px; margin: 0 auto 0.75rem;">
+        CivicFix — Smart Public Infrastructure Issue Tracking Platform.<br>
+        Developed for Innovators Conclave 2026 (Challenge IC26-04-02: Smart Cities &amp; CivilTech).
+      </p>
+      <div style="font-size: 0.78rem; color: var(--text-dim);">
+        Pan-India Coverage • Leaflet OpenStreetMap • Real Camera Capture • Explaining Priority Scoring
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>
